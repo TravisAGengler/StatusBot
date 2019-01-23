@@ -1,0 +1,6 @@
+*
+!.gitignore
+!StatusBot.py
+!statusCheck.py
+!README.md
+!requirements.txt
