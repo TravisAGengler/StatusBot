@@ -21,6 +21,8 @@ def check_server_status(address, port):
 		return {'status' : ServerStatus.ONLINE, 'err' : None}
 	except socket.error as err:
 		return {'status' : ServerStatus.OFFLINE, 'err' : err}
+	except:
+		return {'status' : ServerStatus.OFFLINE, 'err' : 'Unknown error'}
 
 # MAIN
 def _main():

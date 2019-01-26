@@ -29,7 +29,7 @@ server_admin_role = get_config_item(config, 'server_admin_role', 'ServerAdmin')
 server_address = get_config_item(config, 'server_address', '127.0.0.1')
 server_port = get_config_item(config, 'server_port', 9999)
 server_frequency_bounds = [5,30]
-server_frequency = get_config_item(config, 'server_check_frequency', server_check_frequency_bounds[1])
+server_frequency = get_config_item(config, 'server_check_frequency', server_frequency_bounds[1])
 server_status = {'status' : ServerStatus.NOT_DISCOVERED, 'err' : None}
 
 # HELPER FUNCTIONS
@@ -40,8 +40,9 @@ async def send_message(channel, message, user=None):
 	await client.send_message(channel, message)
 
 async def report_server_status(status_channels):
+	global server_status
 	for channel in status_channels:
-		await send_message(channel, "Server status has changed. Server is now {}".format(server_status.name))
+		await send_message(channel, "Server status has changed. Server is now {}".format(server_status['status'].name))
 
 def has_status_changed(old_status, new_status):
 	changed = False
@@ -121,7 +122,7 @@ async def on_config(command_body, channel, requester):
 			handler(config_body)
 			await send_message(channel, 'Configured {} to be {}'.format(config_item, config_body), requester)
 			return
-	await send_message(channel, 'Cannot configure {}. Configurable items are: {}'.format(command_body.split()[0], config_items.keys().join(', ')))
+	await send_message(channel, 'Cannot configure {}. Configurable items are: {}'.format(command_body.split()[0], ', '.join(list(config_items.keys()))))
 
 async def on_tell_status(command_body, channel, requester):
 	await send_message(channel, "The server is currently {}".format(server_status.name), requester)
@@ -137,16 +138,13 @@ async def check_server_task():
 	global client
 	global server_status
 	await client.wait_until_ready()
-	status_channels = []
+	status_channels = get_status_channels()
 	while not client.is_closed:
 		params = get_task_params()
 		new_status = status.check_server_status(params['address'], params['port'])
 		if has_status_changed(server_status, new_status):
 			server_status = new_status
-			if(len(status_channels) > 0):
-				await report_server_status(server_status, status_channels)
-			else:
-				status_channels = get_status_channels()
+			await report_server_status(status_channels)
 		await asyncio.sleep(params['frequency'])
 
 # DISCORD EVENT HANDLING
